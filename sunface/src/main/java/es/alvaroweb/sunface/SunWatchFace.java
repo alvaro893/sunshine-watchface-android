@@ -21,6 +21,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -50,10 +52,10 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
-
-import static android.provider.Contacts.SettingsColumns.KEY;
 
 /**
  * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
@@ -73,7 +75,7 @@ public class SunWatchFace extends CanvasWatchFaceService {
      * Handler message id for updating the time periodically in interactive mode.
      */
     private static final int MSG_UPDATE_TIME = 0;
-    private static final String TAG = SunWatchFace.class.getName();
+    private static final String TAG = SunWatchFace.class.getSimpleName();
 
 
     @Override
@@ -108,6 +110,7 @@ public class SunWatchFace extends CanvasWatchFaceService {
         private static final String WEARABLE_MIN_TEMP_KEY = "min_temp";
         private static final String WEARABLE_WEATHER_ID = "weather_id";
         private static final String RELATIVE_URL = "/sunface";
+        private static final int ICON_SCALE = 60;
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
         Paint mTextPaint;
@@ -129,7 +132,11 @@ public class SunWatchFace extends CanvasWatchFaceService {
          */
         boolean mLowBitAmbient;
         GoogleApiClient mGoogleApiClient;
-
+        private Paint mDatePaint;
+        private int mWeatherId = 800;
+        private String mMaxTemp = "-";
+        private String mMinTemp = "-";
+        private Paint mMaxTempPaint;
 
 
         @Override
@@ -141,6 +148,7 @@ public class SunWatchFace extends CanvasWatchFaceService {
                     .addOnConnectionFailedListener(this)
                     .addApi(Wearable.API)
                     .build();
+            mGoogleApiClient.connect();
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(SunWatchFace.this)
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
@@ -150,12 +158,18 @@ public class SunWatchFace extends CanvasWatchFaceService {
                     .build());
             Resources resources = SunWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+            int textColor = resources.getColor(R.color.digital_text);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
 
             mTextPaint = new Paint();
-            mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
+            mTextPaint = createTextPaint(textColor);
+
+            mDatePaint = new Paint();
+            mDatePaint = createTextPaint(resources.getColor(R.color.digital_text));
+
+            mMaxTempPaint = createTextPaint(textColor);
 
             mCalendar = Calendar.getInstance();
         }
@@ -219,10 +233,15 @@ public class SunWatchFace extends CanvasWatchFaceService {
             boolean isRound = insets.isRound();
             mXOffset = resources.getDimension(isRound
                     ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-            float textSize = resources.getDimension(isRound
+            float timetextSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
-            mTextPaint.setTextSize(textSize);
+            float dateTextSize = resources.getDimension(isRound
+            ? R.dimen.date_size_round : R.dimen.date_size_normal);
+
+            mTextPaint.setTextSize(timetextSize);
+            mDatePaint.setTextSize(dateTextSize);
+            mMaxTempPaint.setTextSize(timetextSize);
         }
 
         @Override
@@ -289,12 +308,33 @@ public class SunWatchFace extends CanvasWatchFaceService {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
 
-            String text = mAmbient
-                    ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-                    mCalendar.get(Calendar.MINUTE))
-                    : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-                    mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
-            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+            Locale locale = getResources().getConfiguration().locale;
+            String timeText = String.format(locale, "%d:%02d", mCalendar.get(Calendar.HOUR),
+                    mCalendar.get(Calendar.MINUTE));
+            canvas.drawText(timeText, mXOffset, mYOffset, mTextPaint);
+
+            String dateText = String.format(locale,"%02d-%d-%d",
+                    mCalendar.get(Calendar.DAY_OF_MONTH),
+                    mCalendar.get(Calendar.MONTH),
+                    mCalendar.get(Calendar.YEAR));
+
+            canvas.drawText(dateText, mXOffset, mYOffset+30f, mDatePaint);
+
+            if(!mAmbient){
+                canvas.drawBitmap(getWeatherIcon(), mXOffset, mYOffset+60f, mTextPaint);
+            }
+
+
+            canvas.drawText(mMaxTemp, mXOffset+150f, mYOffset+40f, mMaxTempPaint);
+            canvas.drawText(mMinTemp, mXOffset+150f, mYOffset+100f, mDatePaint);
+
+
+
+        }
+
+        private Bitmap getWeatherIcon() {
+            Bitmap weatherIcon = BitmapFactory.decodeResource(getResources(), IconHelper.getIconResourceForWeatherCondition(mWeatherId));
+            return Bitmap.createScaledBitmap(weatherIcon, ICON_SCALE, ICON_SCALE, true);
         }
 
         /**
@@ -331,26 +371,27 @@ public class SunWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onConnected(@Nullable Bundle bundle) {
-            if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "onConnected: " + bundle);
-            }
+            //if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "onConnected fired");
+            //}
 
-            Wearable.DataApi.addListener(mGoogleApiClient, Engine.this);
+            Wearable.DataApi.addListener(mGoogleApiClient, this);
         }
 
         @Override
         public void onConnectionSuspended(int i) {
-
+            Log.d(TAG, "onConnectionSuspended: " + i);
         }
 
         @Override
         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
+            Log.d(TAG, "onConnectionFailed: " + connectionResult);
         }
 
         @Override
         public void onDataChanged(DataEventBuffer dataEvents) {
-            Log.d(TAG, "dataChanged");
+            Log.d(TAG, "dataChanged fired");
+            Toast.makeText(getApplicationContext(), "data changed", Toast.LENGTH_LONG).show();
             for (DataEvent event : dataEvents) {
                 if (event.getType() == DataEvent.TYPE_CHANGED) {
                     // DataItem changed
