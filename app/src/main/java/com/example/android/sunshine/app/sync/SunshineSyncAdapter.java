@@ -36,8 +36,7 @@ import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
-import com.example.android.sunshine.app.wearable.WearableSync;
-import com.example.android.sunshine.app.wearable.WearableSyncService;
+import com.example.android.sunshine.app.wearable.WearableSyncHelper;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -89,6 +88,8 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final int LOCATION_STATUS_UNKNOWN = 3;
     public static final int LOCATION_STATUS_INVALID = 4;
 
+    private WearableSyncHelper mWearableHelper;
+
     public SunshineSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
     }
@@ -103,6 +104,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
         String locationQuery = Utility.getPreferredLocation(context);
         String locationLatitude = String.valueOf(Utility.getLocationLatitude(context));
         String locationLongitude = String.valueOf(Utility.getLocationLongitude(context));
+        mWearableHelper = new WearableSyncHelper(context);
 
         // These two need to be declared outside the try/catch
         // so that they can be closed in the finally block.
@@ -206,6 +208,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
         return;
     }
 
+    @Override
+    public void onSyncCanceled() {
+        super.onSyncCanceled();
+        mWearableHelper.stopConnection();
+    }
+
     /**
      * Take the String representing the complete forecast in JSON Format and
      * pull out the data we need to construct the Strings needed for the wireframes.
@@ -254,6 +262,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
         try {
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
             Context context = getContext();
+            mWearableHelper.startConnection();
 
             // do we have an error?
             if ( forecastJson.has(OWM_MESSAGE_CODE) ) {
@@ -409,11 +418,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 Boolean.parseBoolean(context.getString(R.string.pref_enable_notifications_default)));
 
         if ( displayNotifications ) {
+            Log.d(LOG_TAG, "notify");
 
             String lastNotificationKey = context.getString(R.string.pref_last_notification);
             long lastSync = prefs.getLong(lastNotificationKey, 0);
-
-            if (System.currentTimeMillis() - lastSync >= DAY_IN_MILLIS) {
+            //TODO: change this
+            if (System.currentTimeMillis() - lastSync >= DAY_IN_MILLIS || true) {
                 // Last sync was more than 1 day ago, let's send a notification with the weather.
                 String locationQuery = Utility.getPreferredLocation(context);
 
@@ -433,8 +443,9 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                     int artResourceId = Utility.getArtResourceForWeatherCondition(weatherId);
                     String artUrl = Utility.getArtUrlForWeatherCondition(context, weatherId);
 
-                    // Sync weather with the wearables
-                    // TODO: START SERVICE
+                    // sync weather with the wearables
+                    Log.d(LOG_TAG, String.format("high: %s, low: %s, id: %s", high,low,weatherId));
+                    mWearableHelper.syncWeatherInfo(high, low, weatherId);
 
                     // On Honeycomb and higher devices, we can retrieve the size of the large icon
                     // Prior to that, we use a fixed size

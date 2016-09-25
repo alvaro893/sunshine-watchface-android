@@ -188,10 +188,6 @@
             android:name=".wearable.SunWatchFaceConfigActivity"
             android:label="@string/title_activity_sun_watch_face_config" />
 
-        <service
-            android:name=".wearable.WearableSyncService"
-            android:enabled="true"
-            android:exported="true"></service>
     </application>
 
 </manifest>
