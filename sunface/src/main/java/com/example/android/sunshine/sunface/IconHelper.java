@@ -1,7 +1,8 @@
 /**
  * Copyright (C) 2016 Alvaro Bolanos Rodriguez
  */
-package es.alvaroweb.sunface;
+package com.example.android.sunshine.sunface;
+
 
 /*
  * TODO: Create JavaDoc

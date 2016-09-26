@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package es.alvaroweb.sunface;
+package com.example.android.sunshine.sunface;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -52,7 +52,6 @@ import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -288,7 +287,7 @@ public class SunWatchFace extends CanvasWatchFaceService {
                 case TAP_TYPE_TAP:
                     // The user has completed the tap gesture.
                     // TODO: Add code to handle the tap gesture.
-                    Toast.makeText(getApplicationContext(), R.string.message, Toast.LENGTH_SHORT)
+                    Toast.makeText(getApplicationContext(), "is connected: " + mGoogleApiClient.isConnected(), Toast.LENGTH_SHORT)
                             .show();
                     break;
             }
@@ -398,11 +397,10 @@ public class SunWatchFace extends CanvasWatchFaceService {
                     DataItem item = event.getDataItem();
                     if (item.getUri().getPath().compareTo(RELATIVE_URL) == 0) {
                         DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
-                        String high = dataMap.getString(WEARABLE_MAX_TEMP_KEY);
-                        Toast.makeText(getApplicationContext(), "max: " + high, Toast.LENGTH_LONG).show();
+                        mMaxTemp = dataMap.getString(WEARABLE_MAX_TEMP_KEY);
+                        mMinTemp = dataMap.getString(WEARABLE_MIN_TEMP_KEY);
+                        mWeatherId = dataMap.getInt(WEARABLE_WEATHER_ID);
                     }
-                } else if (event.getType() == DataEvent.TYPE_DELETED) {
-                    // DataItem deleted
                 }
             }
         }

@@ -32,13 +32,9 @@ import android.view.View;
 
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.gcm.RegistrationIntentService;
-import com.example.android.sunshine.app.sync.SunshineAuthenticatorService;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
-import com.example.android.sunshine.app.sync.SunshineSyncService;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-
-import static com.google.android.gms.common.api.Status.su;
 
 public class MainActivity extends AppCompatActivity implements ForecastFragment.Callback {
 

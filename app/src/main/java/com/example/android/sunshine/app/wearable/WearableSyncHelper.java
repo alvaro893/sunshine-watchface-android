@@ -42,10 +42,14 @@ public class WearableSyncHelper implements DataApi.DataListener,
                 .addOnConnectionFailedListener(this)
                 .addApi(Wearable.API)
                 .build();
+        mGoogleApiClient.connect();
     }
 
     public void startConnection() {
-        mGoogleApiClient.connect();
+        Log.d(TAG, "is connected already: " + mGoogleApiClient.isConnected());
+        if(!mGoogleApiClient.isConnected()){
+            mGoogleApiClient.connect();
+        }
     }
 
     public void stopConnection(){
@@ -56,30 +60,22 @@ public class WearableSyncHelper implements DataApi.DataListener,
 
     @Override
     public void onConnected(@Nullable Bundle bundle) {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "onConnected: " + bundle);
-        }
+        Log.d(TAG, "connected");
     }
 
     @Override
     public void onConnectionSuspended(int i) {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "onConnectionSuspended: " + i);
-        }
+        Log.d(TAG, "onConnectionSuspended: " + i);
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "onConnectionFailed: " + connectionResult);
-        }
+        Log.d(TAG, "onConnectionFailed: " + connectionResult);
     }
 
     @Override
     public void onDataChanged(DataEventBuffer dataEventBuffer) {
-        if (Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "onDataChanged: " + dataEventBuffer);
-        }
     }
 
     public void syncWeatherInfo(double high, double low, int weatherId) {
@@ -91,6 +87,7 @@ public class WearableSyncHelper implements DataApi.DataListener,
         putDataMapRequest.getDataMap().putString(WEARABLE_MAX_TEMP_KEY, formatedHigh);
         putDataMapRequest.getDataMap().putString(WEARABLE_MIN_TEMP_KEY, formatedLow);
         putDataMapRequest.getDataMap().putInt(WEARABLE_WEATHER_ID, weatherId);
+        putDataMapRequest.getDataMap().putInt("vvvv", (int) System.currentTimeMillis());
 
         PutDataRequest dataRequest = putDataMapRequest.asPutDataRequest();
         dataRequest.setUrgent();
@@ -101,7 +98,7 @@ public class WearableSyncHelper implements DataApi.DataListener,
         pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
             @Override
             public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
-                Log.d(TAG, "Data item result: " + dataItemResult);
+                Log.d(TAG, "Data item result success: " + dataItemResult.getStatus().isSuccess());
             }
         });
 
