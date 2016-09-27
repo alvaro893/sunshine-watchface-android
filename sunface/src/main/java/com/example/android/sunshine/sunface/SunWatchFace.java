@@ -38,7 +38,6 @@ import android.support.wearable.watchface.WatchFaceStyle;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -136,6 +135,8 @@ public class SunWatchFace extends CanvasWatchFaceService {
         private String mMaxTemp = "-";
         private String mMinTemp = "-";
         private Paint mMaxTempPaint;
+        private boolean mIsRound;
+        private Paint mMinTempPaint;
 
 
         @Override
@@ -158,17 +159,15 @@ public class SunWatchFace extends CanvasWatchFaceService {
             Resources resources = SunWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
             int textColor = resources.getColor(R.color.digital_text);
+            int grayTextColor = resources.getColor(R.color.digital_text_grey);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
 
-            mTextPaint = new Paint();
             mTextPaint = createTextPaint(textColor);
-
-            mDatePaint = new Paint();
-            mDatePaint = createTextPaint(resources.getColor(R.color.digital_text));
-
+            mDatePaint = createTextPaint(grayTextColor);
             mMaxTempPaint = createTextPaint(textColor);
+            mMinTempPaint = createTextPaint(grayTextColor);
 
             mCalendar = Calendar.getInstance();
         }
@@ -229,18 +228,19 @@ public class SunWatchFace extends CanvasWatchFaceService {
 
             // Load resources that have alternate values for round watches.
             Resources resources = SunWatchFace.this.getResources();
-            boolean isRound = insets.isRound();
-            mXOffset = resources.getDimension(isRound
+            mIsRound = insets.isRound();
+            mXOffset = resources.getDimension(mIsRound
                     ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
-            float timetextSize = resources.getDimension(isRound
+            float timetextSize = resources.getDimension(mIsRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
-            float dateTextSize = resources.getDimension(isRound
+            float dateTextSize = resources.getDimension(mIsRound
             ? R.dimen.date_size_round : R.dimen.date_size_normal);
 
             mTextPaint.setTextSize(timetextSize);
             mDatePaint.setTextSize(dateTextSize);
             mMaxTempPaint.setTextSize(timetextSize);
+            mMinTempPaint.setTextSize(dateTextSize);
         }
 
         @Override
@@ -275,24 +275,23 @@ public class SunWatchFace extends CanvasWatchFaceService {
          * Captures tap event (and tap type) and toggles the background color if the user finishes
          * a tap.
          */
-        @Override
-        public void onTapCommand(int tapType, int x, int y, long eventTime) {
-            switch (tapType) {
-                case TAP_TYPE_TOUCH:
-                    // The user has started touching the screen.
-                    break;
-                case TAP_TYPE_TOUCH_CANCEL:
-                    // The user has started a different gesture or otherwise cancelled the tap.
-                    break;
-                case TAP_TYPE_TAP:
-                    // The user has completed the tap gesture.
-                    // TODO: Add code to handle the tap gesture.
-                    Toast.makeText(getApplicationContext(), "is connected: " + mGoogleApiClient.isConnected(), Toast.LENGTH_SHORT)
-                            .show();
-                    break;
-            }
-            invalidate();
-        }
+//        @Override
+//        public void onTapCommand(int tapType, int x, int y, long eventTime) {
+//            switch (tapType) {
+//                case TAP_TYPE_TOUCH:
+//                    // The user has started touching the screen.
+//                    break;
+//                case TAP_TYPE_TOUCH_CANCEL:
+//                    // The user has started a different gesture or otherwise cancelled the tap.
+//                    break;
+//                case TAP_TYPE_TAP:
+//                    // The user has completed the tap gesture.
+//                    Toast.makeText(getApplicationContext(), "is connected: " + mGoogleApiClient.isConnected(), Toast.LENGTH_SHORT)
+//                            .show();
+//                    break;
+//            }
+//            invalidate();
+//        }
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
@@ -317,17 +316,17 @@ public class SunWatchFace extends CanvasWatchFaceService {
                     mCalendar.get(Calendar.MONTH),
                     mCalendar.get(Calendar.YEAR));
 
-            canvas.drawText(dateText, mXOffset, mYOffset+30f, mDatePaint);
-
             if(!mAmbient){
                 canvas.drawBitmap(getWeatherIcon(), mXOffset, mYOffset+60f, mTextPaint);
             }
+            float dateYOffset = mIsRound ? mYOffset+40f :mYOffset+30f;
+            float tempXOffset = mXOffset+150f;
+            float maxTempYOffset = mIsRound ? mYOffset+120f : mYOffset+40f;
+            float minTempYOffset = mIsRound ? mYOffset+180f : mYOffset+100f;
 
-
-            canvas.drawText(mMaxTemp, mXOffset+150f, mYOffset+40f, mMaxTempPaint);
-            canvas.drawText(mMinTemp, mXOffset+150f, mYOffset+100f, mDatePaint);
-
-
+            canvas.drawText(dateText, mXOffset, dateYOffset, mDatePaint);
+            canvas.drawText(mMaxTemp, tempXOffset, maxTempYOffset, mMaxTempPaint);
+            canvas.drawText(mMinTemp, tempXOffset, minTempYOffset, mMinTempPaint);
 
         }
 
@@ -390,7 +389,6 @@ public class SunWatchFace extends CanvasWatchFaceService {
         @Override
         public void onDataChanged(DataEventBuffer dataEvents) {
             Log.d(TAG, "dataChanged fired");
-            Toast.makeText(getApplicationContext(), "data changed", Toast.LENGTH_LONG).show();
             for (DataEvent event : dataEvents) {
                 if (event.getType() == DataEvent.TYPE_CHANGED) {
                     // DataItem changed
