@@ -270,28 +270,7 @@ public class SunWatchFace extends CanvasWatchFaceService {
             // whether we're in ambient mode), so we may need to start or stop the timer.
             updateTimer();
         }
-
-        /**
-         * Captures tap event (and tap type) and toggles the background color if the user finishes
-         * a tap.
-         */
-//        @Override
-//        public void onTapCommand(int tapType, int x, int y, long eventTime) {
-//            switch (tapType) {
-//                case TAP_TYPE_TOUCH:
-//                    // The user has started touching the screen.
-//                    break;
-//                case TAP_TYPE_TOUCH_CANCEL:
-//                    // The user has started a different gesture or otherwise cancelled the tap.
-//                    break;
-//                case TAP_TYPE_TAP:
-//                    // The user has completed the tap gesture.
-//                    Toast.makeText(getApplicationContext(), "is connected: " + mGoogleApiClient.isConnected(), Toast.LENGTH_SHORT)
-//                            .show();
-//                    break;
-//            }
-//            invalidate();
-//        }
+        
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
@@ -369,10 +348,7 @@ public class SunWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onConnected(@Nullable Bundle bundle) {
-            //if (Log.isLoggable(TAG, Log.DEBUG)) {
-                Log.d(TAG, "onConnected fired");
-            //}
-
+            Log.d(TAG, "onConnected fired");
             Wearable.DataApi.addListener(mGoogleApiClient, this);
         }
 
