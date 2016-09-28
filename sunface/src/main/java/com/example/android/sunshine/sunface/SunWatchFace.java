@@ -108,7 +108,6 @@ public class SunWatchFace extends CanvasWatchFaceService {
         private static final String WEARABLE_MIN_TEMP_KEY = "min_temp";
         private static final String WEARABLE_WEATHER_ID = "weather_id";
         private static final String RELATIVE_URL = "/sunface";
-        private static final int ICON_SCALE = 60;
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
         Paint mTextPaint;
@@ -274,6 +273,7 @@ public class SunWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
+            float gap = 10f;
             // Draw the background.
             if (isInAmbientMode()) {
                 canvas.drawColor(Color.BLACK);
@@ -288,30 +288,41 @@ public class SunWatchFace extends CanvasWatchFaceService {
             Locale locale = getResources().getConfiguration().locale;
             String timeText = String.format(locale, "%d:%02d", mCalendar.get(Calendar.HOUR),
                     mCalendar.get(Calendar.MINUTE));
-            canvas.drawText(timeText, mXOffset, mYOffset, mTextPaint);
+
 
             String dateText = String.format(locale,"%02d-%d-%d",
                     mCalendar.get(Calendar.DAY_OF_MONTH),
                     mCalendar.get(Calendar.MONTH),
                     mCalendar.get(Calendar.YEAR));
 
-            if(!mAmbient){
-                canvas.drawBitmap(getWeatherIcon(), mXOffset, mYOffset+60f, mTextPaint);
-            }
-            float dateYOffset = mIsRound ? mYOffset+40f :mYOffset+30f;
-            float tempXOffset = mXOffset+150f;
-            float maxTempYOffset = mIsRound ? mYOffset+120f : mYOffset+40f;
-            float minTempYOffset = mIsRound ? mYOffset+180f : mYOffset+100f;
+            float timeWidth = mTextPaint.measureText(timeText);
+            float dateWidth = mDatePaint.measureText(dateText);
+            float dateHeight = mDatePaint.getTextSize();
+            float maxTempHeight = mMaxTempPaint.getTextSize();
+            float minTempHeight = mMinTempPaint.getTextSize();
 
-            canvas.drawText(dateText, mXOffset, dateYOffset, mDatePaint);
+            float timeXOffset = bounds.centerX() - timeWidth / 2f;
+            float dateXOffset = bounds.centerX() - dateWidth / 2f;
+            float tempXOffset = bounds.centerX() + gap;
+            float dateYOffset = mYOffset + dateHeight + gap;
+            float maxTempYOffset = dateYOffset + maxTempHeight + gap;
+            float minTempYOffset = maxTempYOffset + minTempHeight + gap;
+
+            canvas.drawText(timeText, timeXOffset, mYOffset, mTextPaint);
+            canvas.drawText(dateText, dateXOffset, dateYOffset, mDatePaint);
             canvas.drawText(mMaxTemp, tempXOffset, maxTempYOffset, mMaxTempPaint);
             canvas.drawText(mMinTemp, tempXOffset, minTempYOffset, mMinTempPaint);
 
+            if(!mAmbient){
+                canvas.drawBitmap(getWeatherIcon(bounds.width()), dateXOffset, dateYOffset + gap, mTextPaint);
+            }
+
         }
 
-        private Bitmap getWeatherIcon() {
+        private Bitmap getWeatherIcon(int width) {
+            int scale = width / 5;
             Bitmap weatherIcon = BitmapFactory.decodeResource(getResources(), IconHelper.getIconResourceForWeatherCondition(mWeatherId));
-            return Bitmap.createScaledBitmap(weatherIcon, ICON_SCALE, ICON_SCALE, true);
+            return Bitmap.createScaledBitmap(weatherIcon, scale, scale, true);
         }
 
         /**
